@@ -294,7 +294,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 61%;
+            width: 52%;
             margin-top: 4.5%;
             pointer-events: none;
             text-align: center;
@@ -315,7 +315,7 @@
             display: block;
             margin: 0;
             font-family: Georgia, "Times New Roman", serif;
-            font-size: clamp(2.25rem, 7.3vw, 4.45rem);
+            font-size: clamp(1.9rem, 5.7vw, 3.6rem);
             font-weight: 400;
             letter-spacing: -0.055em;
             line-height: 0.74;
@@ -344,11 +344,11 @@
         }
 
         .love-copy__caption {
-            max-width: 260px;
-            margin: 0.6rem 0 0;
+            max-width: 210px;
+            margin: 0.5rem 0 0;
             color: rgba(255, 230, 239, 0.66);
             font-family: Georgia, "Times New Roman", serif;
-            font-size: clamp(0.68rem, 1.65vw, 0.91rem);
+            font-size: clamp(0.64rem, 1.35vw, 0.78rem);
             font-style: italic;
             line-height: 1.5;
             letter-spacing: 0.04em;
@@ -500,7 +500,7 @@
             }
 
             .love-copy {
-                width: 59%;
+                width: 54%;
             }
 
             .love-copy__caption {
@@ -578,7 +578,7 @@
                             <em>тебя</em>
                         </span>
                     </span>
-                    <span class="love-copy__caption">сильнее с каждым ударом сердца</span>
+                    <span class="love-copy__caption">с каждым ударом сердца</span>
                 </span>
             </button>
 
@@ -711,13 +711,16 @@
             if (!width || !height) return;
 
             heartCtx.clearRect(0, 0, width, height);
-            const unit = Math.min(width, height) / 39.2;
+            // Оригинальные пропорции: тот же делитель масштаба, что был в исходнике.
+            const minSide = Math.min(width, height);
+            const unit = minSide / 45;
             const pulse = reduceMotion ? 1 : heartbeat(time);
-            const centerY = height * 0.47;
+            const centerY = height * 0.5;
 
             heartCtx.save();
             heartCtx.translate(width / 2, centerY);
-            heartCtx.rotate(-0.035);
+            // Исходный узнаваемый наклон сердца.
+            heartCtx.rotate(-0.3);
             heartCtx.scale(pulse, pulse);
             heartCtx.globalCompositeOperation = 'screen';
 
@@ -734,72 +737,66 @@
             }
 
             const heartFill = heartCtx.createLinearGradient(-15 * unit, -12 * unit, 15 * unit, 17 * unit);
-            heartFill.addColorStop(0, 'rgba(255, 105, 157, 0.12)');
-            heartFill.addColorStop(0.48, 'rgba(196, 19, 83, 0.22)');
-            heartFill.addColorStop(1, 'rgba(100, 4, 42, 0.08)');
+            heartFill.addColorStop(0, 'rgba(255, 105, 157, 0.035)');
+            heartFill.addColorStop(0.48, 'rgba(196, 19, 83, 0.085)');
+            heartFill.addColorStop(1, 'rgba(100, 4, 42, 0.025)');
             traceHeart(heartCtx, unit);
             heartCtx.fillStyle = heartFill;
-            heartCtx.shadowColor = 'rgba(255, 28, 107, 0.75)';
-            heartCtx.shadowBlur = Math.max(34, unit * 4.4);
+            heartCtx.shadowColor = 'rgba(255, 28, 107, 0.48)';
+            heartCtx.shadowBlur = Math.max(26, unit * 3.8);
             heartCtx.fill();
 
             heartCtx.shadowBlur = Math.max(12, unit * 1.5);
             const outline = heartCtx.createLinearGradient(-16 * unit, -8 * unit, 16 * unit, 14 * unit);
-            outline.addColorStop(0, 'rgba(255, 185, 211, 0.52)');
-            outline.addColorStop(0.43, 'rgba(255, 72, 140, 0.88)');
-            outline.addColorStop(1, 'rgba(168, 15, 72, 0.5)');
+            outline.addColorStop(0, 'rgba(255, 185, 211, 0.12)');
+            outline.addColorStop(0.43, 'rgba(255, 72, 140, 0.2)');
+            outline.addColorStop(1, 'rgba(168, 15, 72, 0.08)');
             heartCtx.strokeStyle = outline;
-            heartCtx.lineWidth = Math.max(0.7, unit * 0.085);
+            heartCtx.lineWidth = Math.max(0.55, unit * 0.055);
             traceHeart(heartCtx, unit);
             heartCtx.stroke();
 
-            const fontSize = Math.max(7.4, Math.min(12.2, width / 51));
-            const step = width < 390 ? 0.12 : 0.095;
+            // Оригинальные шрифт, плотность и скорость движения строк.
+            const fontSize = Math.max(10, minSide / 40);
+            const step = 0.08;
             const wordCount = Math.ceil((Math.PI * 2) / step);
             const loopOffset = (time * LOVE_CONFIG.flowSpeed) % (Math.PI * 2);
             heartCtx.textAlign = 'center';
             heartCtx.textBaseline = 'middle';
-            heartCtx.font = `600 ${fontSize}px ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-            heartCtx.letterSpacing = '0.03em';
+            heartCtx.font = `bold ${fontSize}px monospace`;
+            heartCtx.letterSpacing = '0';
 
-            // Как в оригинале: одинаковые строки остаются горизонтальными и
-            // бесконечно движутся по параметрической форме сердца.
+            // Как в оригинале: одинаковые горизонтальные строки бесконечно
+            // проходят по математической форме сердца.
             const ribbonWords = [];
             for (let index = 0; index < wordCount; index++) {
                 const t = (index * step + loopOffset) % (Math.PI * 2);
                 const point = heartPoint(t, unit);
-                const depth = 0.5 + Math.sin(t) * 0.5;
                 const shimmerPosition = (time * 0.42) % (Math.PI * 2);
                 const distance = Math.abs(Math.atan2(Math.sin(t - shimmerPosition), Math.cos(t - shimmerPosition)));
                 const shimmer = Math.max(0, 1 - distance / 0.7);
 
-                ribbonWords.push({ t, point, depth, shimmer });
+                ribbonWords.push({ point, shimmer });
             }
 
-            // Сначала дальняя сторона, затем ближняя — это сохраняет корректное
-            // перекрытие текста при 3D-наклоне.
-            ribbonWords.sort((a, b) => a.depth - b.depth);
-
             for (const word of ribbonWords) {
-                const { point, depth, shimmer } = word;
-                const depthScale = 0.82 + depth * 0.24;
-                const extrusion = 1.3 + depth * 2.8;
+                const { point, shimmer } = word;
 
                 heartCtx.save();
                 heartCtx.translate(point.x, point.y);
-                heartCtx.scale(depthScale, depthScale);
 
-                // Несколько тёмных копий формируют боковую грань каждой строки.
-                for (let layer = 4; layer >= 1; layer--) {
-                    heartCtx.fillStyle = `rgba(74, 3, 31, ${0.12 + depth * 0.09})`;
+                // Объём добавляется копиями того же текста, не меняя форму сердца.
+                for (let layer = 3; layer >= 1; layer--) {
+                    heartCtx.fillStyle = `rgba(74, 3, 31, ${0.07 + layer * 0.018})`;
                     heartCtx.shadowBlur = 0;
-                    heartCtx.fillText(LOVE_CONFIG.contourText, layer * extrusion * 0.22, layer * extrusion * 0.28);
+                    heartCtx.fillText(LOVE_CONFIG.contourText, layer * 0.65, layer * 0.85);
                 }
 
-                const alpha = 0.42 + depth * 0.43 + shimmer * 0.14;
-                heartCtx.fillStyle = `rgba(255, ${Math.round(154 + depth * 50 + shimmer * 38)}, ${Math.round(190 + depth * 37 + shimmer * 26)}, ${Math.min(1, alpha)})`;
+                // Базовый цвет #ffb6c1 полностью сохранён; световой блик лишь
+                // ненадолго делает отдельные фразы ярче.
+                heartCtx.fillStyle = `rgba(255, ${Math.round(182 + shimmer * 55)}, ${Math.round(193 + shimmer * 42)}, ${0.78 + shimmer * 0.22})`;
                 heartCtx.shadowColor = shimmer > 0.15 ? 'rgba(255, 205, 225, 0.95)' : 'rgba(255, 51, 125, 0.52)';
-                heartCtx.shadowBlur = 3 + depth * 4 + shimmer * 12;
+                heartCtx.shadowBlur = 3 + shimmer * 12;
                 heartCtx.fillText(LOVE_CONFIG.contourText, 0, 0);
                 heartCtx.restore();
             }
