@@ -17,6 +17,8 @@
             --content-y: 0px;
             --halo-x: 0px;
             --halo-y: 0px;
+            --heart-tilt-x: 0deg;
+            --heart-tilt-y: 0deg;
         }
 
         * {
@@ -205,6 +207,8 @@
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
+            perspective: 950px;
+            transform-style: preserve-3d;
             animation: heart-arrival 1.45s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
@@ -276,7 +280,12 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            filter: saturate(1.06);
+            filter: saturate(1.08) drop-shadow(0 18px 30px rgba(70, 0, 28, 0.3));
+            transform: rotateX(var(--heart-tilt-x)) rotateY(var(--heart-tilt-y)) translateZ(0);
+            transform-origin: 50% 49%;
+            transform-style: preserve-3d;
+            transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+            will-change: transform;
         }
 
         .love-copy {
@@ -289,7 +298,7 @@
             margin-top: 4.5%;
             pointer-events: none;
             text-align: center;
-            transform: translate3d(0, 0, 0);
+            transform: translateZ(42px);
             transition: transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 500ms ease;
         }
 
@@ -370,7 +379,7 @@
 
         .heart-button.is-loved .love-copy {
             filter: brightness(1.18);
-            transform: scale(1.045);
+            transform: translateZ(58px) scale(1.045);
         }
 
         .heart-button.is-loved .heart-halo {
@@ -535,7 +544,8 @@
             }
 
             .content,
-            .heart-halo {
+            .heart-halo,
+            #heartCanvas {
                 transform: none;
             }
         }
@@ -580,6 +590,7 @@
         // Основные подписи можно быстро изменить здесь.
         const LOVE_CONFIG = {
             contourText: 'I love you',
+            flowSpeed: 0.3,
             messages: [
                 'любовь отправлена',
                 'ещё один удар — для тебя',
@@ -710,6 +721,18 @@
             heartCtx.scale(pulse, pulse);
             heartCtx.globalCompositeOperation = 'screen';
 
+            // Тёмные смещённые слои создают толщину контура и ощущение объёма.
+            for (let layer = 6; layer >= 1; layer--) {
+                heartCtx.save();
+                heartCtx.translate(layer * unit * 0.08, layer * unit * 0.11);
+                traceHeart(heartCtx, unit);
+                heartCtx.strokeStyle = `rgba(72, 2, 29, ${0.045 + layer * 0.012})`;
+                heartCtx.lineWidth = Math.max(1, unit * 0.16);
+                heartCtx.shadowBlur = 0;
+                heartCtx.stroke();
+                heartCtx.restore();
+            }
+
             const heartFill = heartCtx.createLinearGradient(-15 * unit, -12 * unit, 15 * unit, 17 * unit);
             heartFill.addColorStop(0, 'rgba(255, 105, 157, 0.12)');
             heartFill.addColorStop(0.48, 'rgba(196, 19, 83, 0.22)');
@@ -730,29 +753,53 @@
             traceHeart(heartCtx, unit);
             heartCtx.stroke();
 
-            const fontSize = Math.max(7.2, Math.min(12.2, width / 52));
-            const step = width < 390 ? 0.205 : 0.17;
+            const fontSize = Math.max(7.4, Math.min(12.2, width / 51));
+            const step = width < 390 ? 0.12 : 0.095;
+            const wordCount = Math.ceil((Math.PI * 2) / step);
+            const loopOffset = (time * LOVE_CONFIG.flowSpeed) % (Math.PI * 2);
             heartCtx.textAlign = 'center';
             heartCtx.textBaseline = 'middle';
             heartCtx.font = `600 ${fontSize}px ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
             heartCtx.letterSpacing = '0.03em';
 
-            for (let t = 0; t < Math.PI * 2; t += step) {
+            // Как в оригинале: одинаковые строки остаются горизонтальными и
+            // бесконечно движутся по параметрической форме сердца.
+            const ribbonWords = [];
+            for (let index = 0; index < wordCount; index++) {
+                const t = (index * step + loopOffset) % (Math.PI * 2);
                 const point = heartPoint(t, unit);
-                const tangent = heartTangent(t);
-                let angle = Math.atan2(tangent.y, tangent.x);
-                if (angle > Math.PI / 2 || angle < -Math.PI / 2) angle += Math.PI;
-
+                const depth = 0.5 + Math.sin(t) * 0.5;
                 const shimmerPosition = (time * 0.42) % (Math.PI * 2);
                 const distance = Math.abs(Math.atan2(Math.sin(t - shimmerPosition), Math.cos(t - shimmerPosition)));
                 const shimmer = Math.max(0, 1 - distance / 0.7);
 
+                ribbonWords.push({ t, point, depth, shimmer });
+            }
+
+            // Сначала дальняя сторона, затем ближняя — это сохраняет корректное
+            // перекрытие текста при 3D-наклоне.
+            ribbonWords.sort((a, b) => a.depth - b.depth);
+
+            for (const word of ribbonWords) {
+                const { point, depth, shimmer } = word;
+                const depthScale = 0.82 + depth * 0.24;
+                const extrusion = 1.3 + depth * 2.8;
+
                 heartCtx.save();
                 heartCtx.translate(point.x, point.y);
-                heartCtx.rotate(angle);
-                heartCtx.fillStyle = `rgba(255, ${Math.round(168 + shimmer * 65)}, ${Math.round(198 + shimmer * 45)}, ${0.6 + shimmer * 0.36})`;
+                heartCtx.scale(depthScale, depthScale);
+
+                // Несколько тёмных копий формируют боковую грань каждой строки.
+                for (let layer = 4; layer >= 1; layer--) {
+                    heartCtx.fillStyle = `rgba(74, 3, 31, ${0.12 + depth * 0.09})`;
+                    heartCtx.shadowBlur = 0;
+                    heartCtx.fillText(LOVE_CONFIG.contourText, layer * extrusion * 0.22, layer * extrusion * 0.28);
+                }
+
+                const alpha = 0.42 + depth * 0.43 + shimmer * 0.14;
+                heartCtx.fillStyle = `rgba(255, ${Math.round(154 + depth * 50 + shimmer * 38)}, ${Math.round(190 + depth * 37 + shimmer * 26)}, ${Math.min(1, alpha)})`;
                 heartCtx.shadowColor = shimmer > 0.15 ? 'rgba(255, 205, 225, 0.95)' : 'rgba(255, 51, 125, 0.52)';
-                heartCtx.shadowBlur = 3 + shimmer * 12;
+                heartCtx.shadowBlur = 3 + depth * 4 + shimmer * 12;
                 heartCtx.fillText(LOVE_CONFIG.contourText, 0, 0);
                 heartCtx.restore();
             }
@@ -900,6 +947,8 @@
             scene.style.setProperty('--content-y', `${y * 0.12}px`);
             scene.style.setProperty('--halo-x', `${x * 0.28}px`);
             scene.style.setProperty('--halo-y', `${y * 0.28}px`);
+            scene.style.setProperty('--heart-tilt-x', `${-y * 0.38}deg`);
+            scene.style.setProperty('--heart-tilt-y', `${x * 0.5}deg`);
         }
 
         function animate(timestamp) {
