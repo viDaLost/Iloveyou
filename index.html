@@ -2,91 +2,936 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Adaptive I Love You Heart</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#12030b">
+    <meta name="description" content="Маленькое признание в большой любви">
+    <title>Для тебя ♥</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            touch-action: none; /* Запрещаем случайный скролл на телефонах */
+        :root {
+            color-scheme: dark;
+            --rose: #ff4d8d;
+            --rose-light: #ffd3e2;
+            --wine: #8f1647;
+            --ink: #090207;
+            --content-x: 0px;
+            --content-y: 0px;
+            --halo-x: 0px;
+            --halo-y: 0px;
         }
-        canvas {
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+            margin: 0;
+        }
+
+        body {
+            overflow: hidden;
+            background: var(--ink);
+            color: #fff8fb;
+            font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        button {
+            font: inherit;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .scene {
+            position: relative;
+            isolation: isolate;
+            display: grid;
+            place-items: center;
+            width: 100%;
+            min-height: 100vh;
+            min-height: 100svh;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 50% 43%, rgba(124, 12, 57, 0.29) 0, rgba(42, 4, 23, 0.13) 35%, transparent 66%),
+                radial-gradient(circle at 12% 12%, rgba(114, 24, 69, 0.18), transparent 35%),
+                linear-gradient(145deg, #050105 0%, #12030b 48%, #070105 100%);
+        }
+
+        .scene::before {
+            content: "";
+            position: absolute;
+            z-index: 8;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 35%, rgba(2, 0, 2, 0.38) 100%);
+        }
+
+        .scene::after {
+            content: "";
+            position: absolute;
+            z-index: 9;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.038;
+            background-image:
+                radial-gradient(circle at 10% 20%, #fff 0 0.5px, transparent 0.7px),
+                radial-gradient(circle at 70% 60%, #fff 0 0.5px, transparent 0.7px);
+            background-size: 7px 7px, 11px 11px;
+            mix-blend-mode: soft-light;
+        }
+
+        #ambientCanvas {
+            position: absolute;
+            z-index: 2;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .aurora {
+            position: absolute;
+            z-index: 1;
+            width: min(64vw, 760px);
+            aspect-ratio: 1;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(85px);
+            opacity: 0.2;
+            animation: aurora-drift 16s ease-in-out infinite alternate;
+        }
+
+        .aurora--left {
+            top: -28%;
+            left: -16%;
+            background: #951b58;
+        }
+
+        .aurora--right {
+            right: -22%;
+            bottom: -34%;
+            background: #6e1749;
+            animation-delay: -8s;
+        }
+
+        .ambient-word {
+            position: absolute;
+            z-index: 3;
+            margin: 0;
+            color: rgba(255, 224, 236, 0.34);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(0.62rem, 0.85vw, 0.76rem);
+            font-style: italic;
+            letter-spacing: 0.22em;
+            text-transform: lowercase;
+            pointer-events: none;
+            animation: reveal 1.8s 1.1s both;
+        }
+
+        .ambient-word--top {
+            top: clamp(22px, 4.2vh, 48px);
+            left: clamp(22px, 4.5vw, 72px);
+        }
+
+        .ambient-word--bottom {
+            right: clamp(22px, 4.5vw, 72px);
+            bottom: clamp(22px, 4.2vh, 48px);
+        }
+
+        .content {
+            position: relative;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: min(94vw, 760px);
+            padding: clamp(18px, 3vh, 36px) 0;
+            transform: translate3d(var(--content-x), var(--content-y), 0);
+            transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .kicker {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            margin: 0 0 clamp(-9px, -1vh, -4px);
+            color: rgba(255, 224, 235, 0.68);
+            font-size: clamp(0.58rem, 1.3vw, 0.68rem);
+            font-weight: 500;
+            letter-spacing: 0.38em;
+            text-transform: uppercase;
+            animation: rise-in 1.1s 0.15s both;
+        }
+
+        .kicker::before,
+        .kicker::after {
+            content: "";
+            width: clamp(25px, 6vw, 46px);
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 139, 180, 0.68));
+        }
+
+        .kicker::after {
+            transform: scaleX(-1);
+        }
+
+        .heart-button {
+            position: relative;
+            display: grid;
+            place-items: center;
+            width: min(79vw, 610px);
+            max-height: 72vh;
+            aspect-ratio: 1 / 1;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            border-radius: 48%;
+            outline: none;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            animation: heart-arrival 1.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .heart-button:focus-visible {
+            outline: 1px solid rgba(255, 207, 224, 0.75);
+            outline-offset: 7px;
+        }
+
+        .heart-button::before,
+        .heart-button::after {
+            content: "";
+            position: absolute;
+            z-index: -1;
+            left: 50%;
+            top: 49%;
+            width: 88%;
+            height: 58%;
+            border: 1px solid rgba(255, 164, 197, 0.12);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .heart-button::before {
+            transform: translate(-50%, -50%) rotate(-13deg);
+            animation: orbit-one 22s linear infinite;
+        }
+
+        .heart-button::after {
+            width: 76%;
+            height: 77%;
+            border-color: rgba(255, 210, 226, 0.07);
+            transform: translate(-50%, -50%) rotate(26deg);
+            animation: orbit-two 27s linear infinite reverse;
+        }
+
+        .heart-halo {
+            position: absolute;
+            z-index: -2;
+            left: 50%;
+            top: 49%;
+            width: 65%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            pointer-events: none;
+            background: radial-gradient(circle, rgba(255, 44, 119, 0.23) 0, rgba(177, 12, 74, 0.09) 42%, transparent 71%);
+            filter: blur(18px);
+            transform: translate(calc(-50% + var(--halo-x)), calc(-50% + var(--halo-y)));
+            animation: halo-breathe 3.8s ease-in-out infinite;
+            transition: transform 350ms ease-out;
+        }
+
+        .heart-halo::before,
+        .heart-halo::after {
+            content: "";
+            position: absolute;
+            inset: 12%;
+            border: 1px solid rgba(255, 108, 160, 0.13);
+            border-radius: 50%;
+            animation: halo-ring 3.8s ease-out infinite;
+        }
+
+        .heart-halo::after {
+            animation-delay: -1.9s;
+        }
+
+        #heartCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            filter: saturate(1.06);
+        }
+
+        .love-copy {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 61%;
+            margin-top: 4.5%;
+            pointer-events: none;
+            text-align: center;
+            transform: translate3d(0, 0, 0);
+            transition: transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 500ms ease;
+        }
+
+        .love-copy__overline {
+            margin: 0 0 4px;
+            color: rgba(255, 218, 231, 0.66);
+            font-size: clamp(0.5rem, 1.25vw, 0.67rem);
+            font-weight: 500;
+            letter-spacing: 0.26em;
+            text-transform: uppercase;
+        }
+
+        .love-copy__title {
             display: block;
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2.25rem, 7.3vw, 4.45rem);
+            font-weight: 400;
+            letter-spacing: -0.055em;
+            line-height: 0.74;
+            text-shadow: 0 4px 28px rgba(50, 0, 19, 0.85);
+        }
+
+        .love-copy__heading-main,
+        .love-copy__title em {
+            display: block;
+        }
+
+        .love-copy__heading-main {
+            color: #fff7fa;
+        }
+
+        .love-copy__title em {
+            margin-top: 0.22em;
+            padding: 0 0.08em 0.16em;
+            background: linear-gradient(105deg, #ff9dbf 5%, #fff6f9 47%, #ff75a9 90%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 1.27em;
+            font-style: italic;
+            letter-spacing: -0.08em;
+        }
+
+        .love-copy__caption {
+            max-width: 260px;
+            margin: 0.6rem 0 0;
+            color: rgba(255, 230, 239, 0.66);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(0.68rem, 1.65vw, 0.91rem);
+            font-style: italic;
+            line-height: 1.5;
+            letter-spacing: 0.04em;
+        }
+
+        .orbit-gem {
+            position: absolute;
+            z-index: 3;
+            left: 8.5%;
+            top: 48%;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            pointer-events: none;
+            background: #fff6fa;
+            box-shadow: 0 0 8px 2px rgba(255, 124, 171, 0.8), 0 0 24px rgba(255, 57, 129, 0.6);
+            animation: gem-twinkle 2.6s ease-in-out infinite;
+        }
+
+        .orbit-gem--two {
+            right: 12%;
+            left: auto;
+            top: 33%;
+            width: 3px;
+            height: 3px;
+            animation-delay: -1.2s;
+        }
+
+        .heart-button.is-loved .love-copy {
+            filter: brightness(1.18);
+            transform: scale(1.045);
+        }
+
+        .heart-button.is-loved .heart-halo {
+            animation: halo-pop 800ms cubic-bezier(0.2, 0.9, 0.3, 1);
+        }
+
+        .interaction-hint {
+            display: flex;
+            align-items: center;
+            min-height: 25px;
+            margin: clamp(-12px, -1.5vh, -4px) 0 0;
+            color: rgba(255, 221, 233, 0.5);
+            font-size: clamp(0.58rem, 1.2vw, 0.68rem);
+            font-weight: 500;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            transition: color 350ms ease, transform 350ms ease;
+            animation: rise-in 1s 0.95s both;
+        }
+
+        .interaction-hint::before {
+            content: "♥";
+            margin-right: 10px;
+            color: #ff6c9f;
+            font-size: 0.88rem;
+            filter: drop-shadow(0 0 6px rgba(255, 65, 133, 0.8));
+            animation: tiny-beat 1.65s ease-in-out infinite;
+        }
+
+        .interaction-hint.is-message {
+            color: rgba(255, 238, 244, 0.78);
+            transform: translateY(-2px);
+        }
+
+        .ripple {
+            position: fixed;
+            z-index: 4;
+            width: 18px;
+            height: 18px;
+            margin: -9px;
+            border: 1px solid rgba(255, 206, 224, 0.68);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: ripple-out 900ms cubic-bezier(0.15, 0.6, 0.2, 1) forwards;
+        }
+
+        @keyframes heart-arrival {
+            from { opacity: 0; transform: scale(0.78); filter: blur(16px); }
+            65% { opacity: 1; }
+            to { opacity: 1; transform: scale(1); filter: blur(0); }
+        }
+
+        @keyframes rise-in {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes reveal {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes aurora-drift {
+            from { transform: translate3d(-2%, -3%, 0) scale(0.92); }
+            to { transform: translate3d(8%, 5%, 0) scale(1.08); }
+        }
+
+        @keyframes halo-breathe {
+            0%, 100% { opacity: 0.74; scale: 0.94; }
+            50% { opacity: 1; scale: 1.06; }
+        }
+
+        @keyframes halo-ring {
+            0% { opacity: 0.42; transform: scale(0.72); }
+            100% { opacity: 0; transform: scale(1.28); }
+        }
+
+        @keyframes halo-pop {
+            0% { opacity: 0.7; scale: 0.9; }
+            32% { opacity: 1; scale: 1.28; }
+            100% { opacity: 0.78; scale: 0.96; }
+        }
+
+        @keyframes orbit-one {
+            from { transform: translate(-50%, -50%) rotate(-13deg); }
+            to { transform: translate(-50%, -50%) rotate(347deg); }
+        }
+
+        @keyframes orbit-two {
+            from { transform: translate(-50%, -50%) rotate(26deg); }
+            to { transform: translate(-50%, -50%) rotate(386deg); }
+        }
+
+        @keyframes gem-twinkle {
+            0%, 100% { opacity: 0.32; transform: scale(0.65); }
+            48% { opacity: 1; transform: scale(1.35); }
+        }
+
+        @keyframes tiny-beat {
+            0%, 34%, 100% { transform: scale(0.9); }
+            10% { transform: scale(1.22); }
+            20% { transform: scale(1); }
+            27% { transform: scale(1.12); }
+        }
+
+        @keyframes ripple-out {
+            0% { opacity: 0.8; transform: scale(0.5); }
+            100% { opacity: 0; transform: scale(16); }
+        }
+
+        @media (max-width: 640px) {
+            .ambient-word {
+                opacity: 0.68;
+            }
+
+            .heart-button {
+                width: min(96vw, 560px);
+            }
+
+            .love-copy {
+                width: 59%;
+            }
+
+            .love-copy__caption {
+                max-width: 190px;
+            }
+        }
+
+        @media (max-height: 690px) and (min-width: 500px) {
+            .heart-button {
+                width: min(68vh, 520px);
+            }
+
+            .ambient-word--top {
+                top: 18px;
+            }
+
+            .ambient-word--bottom {
+                bottom: 18px;
+            }
+        }
+
+        @media (max-height: 560px) {
+            .kicker,
+            .interaction-hint {
+                display: none;
+            }
+
+            .heart-button {
+                width: min(82vh, 470px);
+                max-height: none;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+            }
+
+            .content,
+            .heart-halo {
+                transform: none;
+            }
         }
     </style>
 </head>
 <body>
-    <canvas id="heartCanvas"></canvas>
+    <div class="scene" id="scene">
+        <canvas id="ambientCanvas" aria-hidden="true"></canvas>
+        <div class="aurora aurora--left" aria-hidden="true"></div>
+        <div class="aurora aurora--right" aria-hidden="true"></div>
+
+        <p class="ambient-word ambient-word--top" aria-hidden="true">one heart · one love</p>
+        <p class="ambient-word ambient-word--bottom" aria-hidden="true">forever &amp; always</p>
+
+        <main class="content">
+            <p class="kicker">маленькое признание</p>
+
+            <button class="heart-button" id="heartButton" type="button" aria-describedby="interactionHint" aria-label="Сердце. Нажмите, чтобы отправить любовь">
+                <span class="heart-halo" aria-hidden="true"></span>
+                <canvas id="heartCanvas" aria-hidden="true"></canvas>
+                <span class="orbit-gem" aria-hidden="true"></span>
+                <span class="orbit-gem orbit-gem--two" aria-hidden="true"></span>
+
+                <span class="love-copy">
+                    <span class="love-copy__overline">только для тебя</span>
+                    <span class="love-copy__title" role="heading" aria-level="1">
+                        <span class="sr-only">Я люблю тебя</span>
+                        <span aria-hidden="true">
+                            <span class="love-copy__heading-main">Я люблю</span>
+                            <em>тебя</em>
+                        </span>
+                    </span>
+                    <span class="love-copy__caption">сильнее с каждым ударом сердца</span>
+                </span>
+            </button>
+
+            <p class="interaction-hint" id="interactionHint" aria-live="polite">коснись сердца</p>
+        </main>
+    </div>
 
     <script>
-        const canvas = document.getElementById('heartCanvas');
-        const ctx = canvas.getContext('2d');
+        // Основные подписи можно быстро изменить здесь.
+        const LOVE_CONFIG = {
+            contourText: 'I love you',
+            messages: [
+                'любовь отправлена',
+                'ещё один удар — для тебя',
+                'ты — моё самое красивое «навсегда»',
+                'сегодня, завтра, всегда'
+            ]
+        };
 
-        let scale = 16;
-        let fontSize = 14;
+        const scene = document.getElementById('scene');
+        const heartButton = document.getElementById('heartButton');
+        const hint = document.getElementById('interactionHint');
+        const heartCanvas = document.getElementById('heartCanvas');
+        const ambientCanvas = document.getElementById('ambientCanvas');
+        const heartCtx = heartCanvas.getContext('2d');
+        const ambientCtx = ambientCanvas.getContext('2d');
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        let dpr = 1;
+        let heartSize = { width: 0, height: 0 };
+        let viewport = { width: 0, height: 0 };
+        let stars = [];
+        let floaters = [];
+        let bursts = [];
+        let impact = 0;
+        let messageIndex = 0;
+        let animationFrame = 0;
+        let lastTime = performance.now();
+
+        function setCanvasSize(canvas, ctx, width, height) {
+            const nextDpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = Math.round(width * nextDpr);
+            canvas.height = Math.round(height * nextDpr);
+            ctx.setTransform(nextDpr, 0, 0, nextDpr, 0, 0);
+            return nextDpr;
+        }
 
         function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            
-            // Находим меньшую сторону экрана (ширину или высоту)
-            const minSide = Math.min(canvas.width, canvas.height);
-            
-            // Динамический масштаб: чем меньше экран, тем меньше сердце, 
-            // цифра 45 дает комфортные отступы от краев.
-            scale = minSide / 45;
-            
-            // Динамический размер шрифта (не меньше 10px для читаемости)
-            fontSize = Math.max(10, minSide / 40);
+            viewport.width = window.innerWidth;
+            viewport.height = window.innerHeight;
+            dpr = setCanvasSize(ambientCanvas, ambientCtx, viewport.width, viewport.height);
+
+            // clientWidth/clientHeight не зависят от стартовой scale-анимации,
+            // поэтому canvas остаётся идеально чётким после появления сердца.
+            heartSize.width = heartButton.clientWidth;
+            heartSize.height = heartButton.clientHeight;
+            setCanvasSize(heartCanvas, heartCtx, heartSize.width, heartSize.height);
+
+            createAmbientParticles();
         }
-        
-        // Пересчитываем размеры при загрузке и при повороте/изменении экрана
-        window.addEventListener('resize', resize);
-        resize();
 
-        let timeOffset = 0; 
+        function seededValue(index, salt) {
+            const value = Math.sin(index * 91.73 + salt * 37.19) * 43758.5453;
+            return value - Math.floor(value);
+        }
 
-        function draw() {
-            ctx.fillStyle = '#000'; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function createAmbientParticles() {
+            const starCount = Math.max(30, Math.min(78, Math.round((viewport.width * viewport.height) / 17500)));
+            stars = Array.from({ length: starCount }, (_, index) => ({
+                x: seededValue(index, 1) * viewport.width,
+                y: seededValue(index, 2) * viewport.height,
+                radius: 0.35 + seededValue(index, 3) * 1.15,
+                phase: seededValue(index, 4) * Math.PI * 2,
+                speed: 0.35 + seededValue(index, 5) * 0.9,
+                alpha: 0.12 + seededValue(index, 6) * 0.44
+            }));
 
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            
-            // Статичный наклон
-            ctx.rotate(-0.3); 
+            const floaterCount = viewport.width < 620 ? 7 : 11;
+            floaters = Array.from({ length: floaterCount }, (_, index) => createFloater(index, true));
+        }
 
-            // Применяем вычисленный адаптивный шрифт
-            ctx.font = `bold ${fontSize}px monospace`;
-            ctx.fillStyle = '#ffb6c1';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+        function createFloater(index, initial = false) {
+            return {
+                x: seededValue(index + Date.now() * 0.0001, 9) * viewport.width,
+                y: initial ? seededValue(index, 10) * viewport.height : viewport.height + 30,
+                size: 3.5 + seededValue(index, 11) * 8,
+                speed: 6 + seededValue(index, 12) * 14,
+                drift: 8 + seededValue(index, 13) * 18,
+                phase: seededValue(index, 14) * Math.PI * 2,
+                alpha: 0.05 + seededValue(index, 15) * 0.1
+            };
+        }
 
-            // Рисуем плотный контур
-            for (let i = 0; i < Math.PI * 2; i += 0.08) {
-                let t = i + timeOffset; 
-                
-                const x = 16 * Math.pow(Math.sin(t), 3);
-                const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-                
-                // Используем вычисленный адаптивный масштаб
-                ctx.fillText('I love you', x * scale, y * scale);
+        function heartPoint(t, unit) {
+            return {
+                x: 16 * Math.pow(Math.sin(t), 3) * unit,
+                y: (-13 * Math.cos(t) + 5 * Math.cos(2 * t) + 2 * Math.cos(3 * t) + Math.cos(4 * t)) * unit
+            };
+        }
+
+        function heartTangent(t) {
+            return {
+                x: 48 * Math.pow(Math.sin(t), 2) * Math.cos(t),
+                y: 13 * Math.sin(t) - 10 * Math.sin(2 * t) - 6 * Math.sin(3 * t) - 4 * Math.sin(4 * t)
+            };
+        }
+
+        function traceHeart(ctx, unit) {
+            ctx.beginPath();
+            for (let t = 0; t <= Math.PI * 2 + 0.025; t += 0.025) {
+                const point = heartPoint(t, unit);
+                if (t === 0) ctx.moveTo(point.x, point.y);
+                else ctx.lineTo(point.x, point.y);
+            }
+            ctx.closePath();
+        }
+
+        function heartbeat(time) {
+            const phase = (time % 1.55) / 1.55;
+            const first = Math.exp(-Math.pow((phase - 0.08) / 0.042, 2)) * 0.034;
+            const second = Math.exp(-Math.pow((phase - 0.19) / 0.052, 2)) * 0.019;
+            const settle = Math.exp(-Math.pow((phase - 0.31) / 0.09, 2)) * -0.007;
+            return 1 + first + second + settle + impact * 0.06;
+        }
+
+        function drawHeart(time) {
+            const width = heartSize.width;
+            const height = heartSize.height;
+            if (!width || !height) return;
+
+            heartCtx.clearRect(0, 0, width, height);
+            const unit = Math.min(width, height) / 39.2;
+            const pulse = reduceMotion ? 1 : heartbeat(time);
+            const centerY = height * 0.47;
+
+            heartCtx.save();
+            heartCtx.translate(width / 2, centerY);
+            heartCtx.rotate(-0.035);
+            heartCtx.scale(pulse, pulse);
+            heartCtx.globalCompositeOperation = 'screen';
+
+            const heartFill = heartCtx.createLinearGradient(-15 * unit, -12 * unit, 15 * unit, 17 * unit);
+            heartFill.addColorStop(0, 'rgba(255, 105, 157, 0.12)');
+            heartFill.addColorStop(0.48, 'rgba(196, 19, 83, 0.22)');
+            heartFill.addColorStop(1, 'rgba(100, 4, 42, 0.08)');
+            traceHeart(heartCtx, unit);
+            heartCtx.fillStyle = heartFill;
+            heartCtx.shadowColor = 'rgba(255, 28, 107, 0.75)';
+            heartCtx.shadowBlur = Math.max(34, unit * 4.4);
+            heartCtx.fill();
+
+            heartCtx.shadowBlur = Math.max(12, unit * 1.5);
+            const outline = heartCtx.createLinearGradient(-16 * unit, -8 * unit, 16 * unit, 14 * unit);
+            outline.addColorStop(0, 'rgba(255, 185, 211, 0.52)');
+            outline.addColorStop(0.43, 'rgba(255, 72, 140, 0.88)');
+            outline.addColorStop(1, 'rgba(168, 15, 72, 0.5)');
+            heartCtx.strokeStyle = outline;
+            heartCtx.lineWidth = Math.max(0.7, unit * 0.085);
+            traceHeart(heartCtx, unit);
+            heartCtx.stroke();
+
+            const fontSize = Math.max(7.2, Math.min(12.2, width / 52));
+            const step = width < 390 ? 0.205 : 0.17;
+            heartCtx.textAlign = 'center';
+            heartCtx.textBaseline = 'middle';
+            heartCtx.font = `600 ${fontSize}px ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+            heartCtx.letterSpacing = '0.03em';
+
+            for (let t = 0; t < Math.PI * 2; t += step) {
+                const point = heartPoint(t, unit);
+                const tangent = heartTangent(t);
+                let angle = Math.atan2(tangent.y, tangent.x);
+                if (angle > Math.PI / 2 || angle < -Math.PI / 2) angle += Math.PI;
+
+                const shimmerPosition = (time * 0.42) % (Math.PI * 2);
+                const distance = Math.abs(Math.atan2(Math.sin(t - shimmerPosition), Math.cos(t - shimmerPosition)));
+                const shimmer = Math.max(0, 1 - distance / 0.7);
+
+                heartCtx.save();
+                heartCtx.translate(point.x, point.y);
+                heartCtx.rotate(angle);
+                heartCtx.fillStyle = `rgba(255, ${Math.round(168 + shimmer * 65)}, ${Math.round(198 + shimmer * 45)}, ${0.6 + shimmer * 0.36})`;
+                heartCtx.shadowColor = shimmer > 0.15 ? 'rgba(255, 205, 225, 0.95)' : 'rgba(255, 51, 125, 0.52)';
+                heartCtx.shadowBlur = 3 + shimmer * 12;
+                heartCtx.fillText(LOVE_CONFIG.contourText, 0, 0);
+                heartCtx.restore();
             }
 
-            ctx.restore();
+            for (let index = 0; index < 17; index++) {
+                const t = (index / 17) * Math.PI * 2 + time * (0.035 + (index % 3) * 0.004);
+                const point = heartPoint(t, unit);
+                const twinkle = 0.35 + 0.65 * Math.pow(Math.sin(time * 2.1 + index * 1.7) * 0.5 + 0.5, 4);
+                const radius = (index % 5 === 0 ? 1.7 : 0.85) * twinkle;
+                heartCtx.beginPath();
+                heartCtx.arc(point.x, point.y, Math.max(0.35, radius), 0, Math.PI * 2);
+                heartCtx.fillStyle = `rgba(255, 245, 249, ${0.25 + twinkle * 0.75})`;
+                heartCtx.shadowColor = '#ff7dac';
+                heartCtx.shadowBlur = 7 + twinkle * 10;
+                heartCtx.fill();
+            }
 
-            // Медленное движение по часовой стрелке
-            timeOffset += 0.005; 
-            
-            requestAnimationFrame(draw);
+            heartCtx.restore();
         }
 
-        draw();
+        function drawMiniHeart(ctx, x, y, size, rotation, alpha, color = '255, 93, 149') {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rotation);
+            ctx.scale(size / 32, size / 32);
+            ctx.beginPath();
+            for (let t = 0; t <= Math.PI * 2 + 0.08; t += 0.08) {
+                const point = heartPoint(t, 1);
+                if (t === 0) ctx.moveTo(point.x, point.y);
+                else ctx.lineTo(point.x, point.y);
+            }
+            ctx.closePath();
+            ctx.fillStyle = `rgba(${color}, ${alpha})`;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawAmbient(time, delta) {
+            ambientCtx.clearRect(0, 0, viewport.width, viewport.height);
+            ambientCtx.globalCompositeOperation = 'screen';
+
+            for (const star of stars) {
+                const flicker = 0.46 + Math.sin(time * star.speed + star.phase) * 0.3;
+                ambientCtx.beginPath();
+                ambientCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ambientCtx.fillStyle = `rgba(255, 220, 234, ${star.alpha * flicker})`;
+                ambientCtx.fill();
+            }
+
+            if (!reduceMotion) {
+                floaters.forEach((floater, index) => {
+                    floater.y -= floater.speed * delta;
+                    const x = floater.x + Math.sin(time * 0.42 + floater.phase) * floater.drift;
+                    drawMiniHeart(ambientCtx, x, floater.y, floater.size, Math.sin(time * 0.28 + floater.phase) * 0.35, floater.alpha);
+                    if (floater.y < -35) floaters[index] = createFloater(index, false);
+                });
+            }
+
+            bursts = bursts.filter(particle => particle.life > 0);
+            for (const particle of bursts) {
+                particle.life -= delta;
+                particle.vy += 15 * delta;
+                particle.x += particle.vx * delta;
+                particle.y += particle.vy * delta;
+                particle.rotation += particle.spin * delta;
+                const alpha = Math.max(0, particle.life / particle.maxLife);
+
+                if (particle.kind === 'heart') {
+                    drawMiniHeart(ambientCtx, particle.x, particle.y, particle.size * (0.65 + alpha * 0.35), particle.rotation, alpha * 0.82, particle.color);
+                } else {
+                    ambientCtx.beginPath();
+                    ambientCtx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2);
+                    ambientCtx.fillStyle = `rgba(255, 230, 240, ${alpha})`;
+                    ambientCtx.shadowColor = '#ff5f98';
+                    ambientCtx.shadowBlur = 8;
+                    ambientCtx.fill();
+                    ambientCtx.shadowBlur = 0;
+                }
+            }
+
+            ambientCtx.globalCompositeOperation = 'source-over';
+        }
+
+        function addLoveBurst(clientX, clientY) {
+            const rect = heartButton.getBoundingClientRect();
+            const originX = Number.isFinite(clientX) ? clientX : rect.left + rect.width / 2;
+            const originY = Number.isFinite(clientY) ? clientY : rect.top + rect.height * 0.48;
+            const count = reduceMotion ? 12 : (viewport.width < 600 ? 26 : 38);
+
+            for (let index = 0; index < count; index++) {
+                const angle = (index / count) * Math.PI * 2 + Math.random() * 0.34;
+                const speed = 45 + Math.random() * 130;
+                const life = 0.75 + Math.random() * 0.75;
+                bursts.push({
+                    x: originX,
+                    y: originY,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 28,
+                    life,
+                    maxLife: life,
+                    size: 4 + Math.random() * 9,
+                    rotation: Math.random() * Math.PI * 2,
+                    spin: (Math.random() - 0.5) * 3.5,
+                    kind: index % 3 === 0 ? 'spark' : 'heart',
+                    color: index % 4 === 0 ? '255, 202, 222' : (index % 4 === 1 ? '255, 61, 132' : '255, 113, 163')
+                });
+            }
+
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            ripple.style.left = `${originX}px`;
+            ripple.style.top = `${originY}px`;
+            scene.appendChild(ripple);
+            ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+        }
+
+        function sendLove(event) {
+            impact = 1;
+            heartButton.classList.remove('is-loved');
+            void heartButton.offsetWidth;
+            heartButton.classList.add('is-loved');
+            window.setTimeout(() => heartButton.classList.remove('is-loved'), 850);
+
+            const hasPointerPosition = event.detail > 0 && (event.clientX !== 0 || event.clientY !== 0);
+            const point = hasPointerPosition ? { x: event.clientX, y: event.clientY } : { x: NaN, y: NaN };
+            addLoveBurst(point.x, point.y);
+
+            hint.textContent = LOVE_CONFIG.messages[messageIndex % LOVE_CONFIG.messages.length];
+            hint.classList.add('is-message');
+            messageIndex += 1;
+
+            window.setTimeout(() => {
+                hint.textContent = 'коснись сердца ещё раз';
+                hint.classList.remove('is-message');
+            }, 2600);
+
+            if (navigator.vibrate) navigator.vibrate([18, 45, 28]);
+        }
+
+        function updateParallax(event) {
+            if (reduceMotion || event.pointerType === 'touch') return;
+            const x = (event.clientX / viewport.width - 0.5) * 18;
+            const y = (event.clientY / viewport.height - 0.5) * 18;
+            scene.style.setProperty('--content-x', `${x * 0.12}px`);
+            scene.style.setProperty('--content-y', `${y * 0.12}px`);
+            scene.style.setProperty('--halo-x', `${x * 0.28}px`);
+            scene.style.setProperty('--halo-y', `${y * 0.28}px`);
+        }
+
+        function animate(timestamp) {
+            const time = timestamp / 1000;
+            const delta = Math.min((timestamp - lastTime) / 1000, 0.05);
+            lastTime = timestamp;
+            impact *= Math.pow(0.025, delta);
+
+            const visualTime = reduceMotion ? 0 : time;
+            drawAmbient(visualTime, delta);
+            drawHeart(visualTime);
+            animationFrame = requestAnimationFrame(animate);
+        }
+
+        heartButton.addEventListener('click', sendLove);
+        scene.addEventListener('pointermove', updateParallax, { passive: true });
+        window.addEventListener('resize', resize, { passive: true });
+        window.addEventListener('orientationchange', () => window.setTimeout(resize, 120), { passive: true });
+        if ('ResizeObserver' in window) {
+            new ResizeObserver(resize).observe(heartButton);
+        }
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                cancelAnimationFrame(animationFrame);
+            } else {
+                lastTime = performance.now();
+                animationFrame = requestAnimationFrame(animate);
+            }
+        });
+
+        resize();
+        animationFrame = requestAnimationFrame(animate);
     </script>
 </body>
 </html>
